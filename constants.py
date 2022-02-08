@@ -1,5 +1,5 @@
-from email.policy import default
 import os
+from telethon.tl.types import KeyboardButton
 
 def getenv(key, default = ""):
   return os.getenv(key) or default
@@ -7,6 +7,11 @@ def getenv(key, default = ""):
 API_ID = getenv("API_ID")
 API_HASH = getenv("API_HASH")
 BOT_ID = getenv("BOT_ID")
+
+# database credentials
+DB_URL = getenv("DB_URL")
+DB_NAME = getenv("DB_NAME")
+DB_SESS = getenv("DB_SESS")
 
 # filters
 FILTER_TEXT = getenv("FILTER_TEXT", True)
@@ -26,3 +31,8 @@ FILTER_GAME = getenv("FILTER_GAME", True)
 
 # for copy buttons
 REPLY_MARKUP = getenv("REPLY_MARKUP", False)
+
+
+START_TEXT = """Hello @{}, Ill be needing your contact to set up the integration!"""
+
+START_BUTTONS = []

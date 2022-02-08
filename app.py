@@ -4,54 +4,77 @@ from asyncio import get_event_loop
 from pydoc import cli
 
 # telethon specific imports
-from telethon import TelegramClient as Client, events
-from telethon.tl.types import ReplyKeyboardMarkup, KeyboardButtonRequestPhone
+from telethon import TelegramClient as Client
+from telethon.events import NewMessage
+from telethon.tl.types import Message
+from telethon.sessions import SQLiteSession
 
 
 # custom imports
 from session import MongoSession
-from constants import ( API_HASH, API_ID, BOT_ID )
+from constants import (
+  API_HASH,
+  API_ID,
+  BOT_ID,
+  START_TEXT,
+  START_BUTTONS
+)
 
 # instantiate new session
 Session = MongoSession()
-
 async_jobs = get_event_loop()
-client = Client(Session, API_ID, API_HASH)
-
-START_TEXT = """Hello {}, Ill be needing your contact to set up the integration!"""
-START_BUTTONS = ReplyKeyboardMarkup(
-  [
-    [
-      KeyboardButtonRequestPhone("Send Phone Number"),
-    ],
-  ]
-)
 
 async def start_process():
-  Bot = await client.start(bot_token = BOT_ID)
+  bot = Client(Session, API_ID, API_HASH)
+  await bot.start(bot_token = BOT_ID)
 
-  @Bot.on(events.NewMessage(incoming=True))
-  async def bot_start(bot, update):
-    await update.reply_text(
-      text=START_TEXT.format(update.from_user.mention),
-      disable_web_page_preview=True,
-      reply_markup=START_BUTTONS,
+  @bot.on(NewMessage(incoming=True, pattern="^/start$"))
+  async def start_command(message):
+    reply = START_TEXT.format(message.sender.username)
+    await message.reply(reply)
+  
+  @bot.on(NewMessage(incoming=True, pattern="^/new"))
+  async def add_host_command(message):
+    async with bot.conversation(message.chat) as conv:
+      # replace input with a conversation
+      async def request_code():
+        await conv.send_message("Input code sent by telegram")
+        return (await conv.get_response()).raw_text
+      
+      await conv.send_message("What's the number you wish to add?")
+      phone = await conv.get_response()
+      client = Client(phone.raw_text, API_ID, API_HASH)
+
+      # attempt to signin user
+      #try:
+      await client.start(
+          phone.raw_text,
+          code_callback=request_code
+      )
+      await conv.send_message("Number Added successfully")
+      # except:
+      #   await conv.send_message("Number could not be added. Please try again")
+
+  @bot.on(NewMessage(incoming=True, pattern="^/add"))
+  async def add_message(message):
+    pass
+
+  @bot.on(NewMessage)
+  async def send_messages(update):
+    async_jobs.create_task(
+        start(phoneSession) for phoneSession in SQLiteSession.list_sessions()
     )
 
-  @Bot.on(events.NewMessage(incoming=True))
-  async def sent_contact(bot, update):
-    print(update)
-    await client.start(update.text)
+  # start sending messages on behalf of accounts
+  async def start(phoneSession) -> None:
+    client = Client(
+      phoneSession,
+      API_ID,
+      API_HASH
+    )
+    await client.start(phoneSession.id)
+    # profile = await client.get_me()
 
-  async def start(phone) -> None:
-    await client.start(phone)
-    host = await client.get_me()
-    print(host)
-
-  for phone in Session.find("hosts"):
-    task = start(phone)
-    async_jobs.create_task(task)
-
+# create main task and start running
 async_jobs.create_task(start_process())
-
 async_jobs.run_forever()
