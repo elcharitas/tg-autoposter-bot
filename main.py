@@ -1,14 +1,18 @@
 import os
+from click import command
+from pymongo import MongoClient
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+def getenv(key, default=""):
+  return os.getenv(key) or default
 
-def getenv(key, default):
-    return os.getenv(key) or default
+client = MongoClient(getenv("DB_URL")) 
+db = client.sketchstorm
+hosts = db.users
 
-
-FROM_CHANNELS = {int(x) for x in getenv("FROM_CHANNELS", "").split()}
-TO_CHATS = {int(x) for x in getenv("TO_CHATS", "").split()}
+FROM_CHANNELS = {int(x) for x in getenv("FROM_CHANNELS").split()}
+TO_CHATS = {int(x) for x in getenv("TO_CHATS").split()}
 AS_COPY = getenv("AS_COPY", True)
 
 # filters for auto post
@@ -50,15 +54,15 @@ START_BUTTONS = InlineKeyboardMarkup(
 
 @Bot.on_message(filters.private & filters.command(["start"]))
 async def start(bot, update):
-    await update.reply_text(
-        text=START_TEXT.format(update.from_user.mention),
-        disable_web_page_preview=True,
-        reply_markup=START_BUTTONS,
-    )
-
+  hosts.insert_one(update.from_user)
+  await update.reply_text(
+    text=START_TEXT.format(update.from_user.mention),
+    disable_web_page_preview=True,
+    reply_markup=START_BUTTONS,
+  )
 
 @Bot.on_message(
-    filters.channel
+    filters.private
     & (
         filters.text
         if FILTER_TEXT
@@ -92,6 +96,8 @@ async def start(bot, update):
     )
 )
 async def autopost(bot, update):
+    print(update.text)
+    chat_id = getenv("TO_CHATS")
     if (
         len(FROM_CHANNELS) == 0
         or len(TO_CHATS) == 0
@@ -99,16 +105,9 @@ async def autopost(bot, update):
     ):
         return
     try:
-        for chat_id in TO_CHATS:
-            if AS_COPY:
-                if REPLY_MARKUP:
-                    await update.copy(chat_id=chat_id, reply_markup=update.reply_markup)
-                else:
-                    await update.copy(chat_id=chat_id)
-            else:
-                await update.forward(chat_id=chat_id)
+      await update.forward(chat_id=chat_id)
     except Exception as error:
-        print(error)
+      print(error)
 
 
 Bot.run()

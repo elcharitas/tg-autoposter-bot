@@ -6,6 +6,11 @@ name = "pypi"
 [packages]
 Pyrogram = "*"
 TgCrypto = "*"
+pymongo = {extras = ["srv"], version = "*"}
+peewee = "*"
+telethon = "*"
+requests = "*"
+bs4 = "*"
 
 [dev-packages]
 
