@@ -2,6 +2,7 @@
 from os import getenv
 from asyncio import get_event_loop
 from pydoc import cli
+from random import random
 
 # telethon specific imports
 from telethon import TelegramClient as Client
@@ -43,13 +44,13 @@ async def start_process():
       
       await conv.send_message("What's the number you wish to add?")
       phone = await conv.get_response()
-      client = Client(phone.raw_text, API_ID, API_HASH)
+      client = Client("sessions/" + phone.raw_text, API_ID, API_HASH)
 
       # attempt to signin user
       #try:
       await client.start(
-          phone.raw_text,
-          code_callback=request_code
+        phone.raw_text,
+        code_callback=request_code
       )
       await conv.send_message("Number Added successfully")
       # except:
@@ -57,9 +58,14 @@ async def start_process():
 
   @bot.on(NewMessage(incoming=True, pattern="^/add"))
   async def add_message(message):
-    pass
+    async with bot.conversation(message.chat) as conv:
+      await conv.send_message("Input new message to add")
+      Session.cursor("messages").insert_one({
+        "message": (await conv.get_response()).raw_text
+      })
+      await conv.send_message("Message added succesfully")
 
-  @bot.on(NewMessage)
+  @bot.on(NewMessage(pattern="/send", incoming=True))
   async def send_messages(update):
     async_jobs.create_task(
         start(phoneSession) for phoneSession in SQLiteSession.list_sessions()
@@ -74,6 +80,10 @@ async def start_process():
     )
     await client.start(phoneSession.id)
     # profile = await client.get_me()
+    @client.on(NewMessage())
+    async def send_msg(message):
+      msgs = Session.cursor("message").find()
+      message.reply(msgs[random(0, len(msgs))])
 
 # create main task and start running
 async_jobs.create_task(start_process())
