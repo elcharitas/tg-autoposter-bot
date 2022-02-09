@@ -1,17 +1,13 @@
-```
-Made with Python3
-(C) @FayasNoushad
-Copyright permission under MIT License
-License -> https://github.com/FayasNoushad/Channel-Auto-Post-Bot/blob/main/LICENSE
-```
+# Telegram Autoposter Bot
 
----
+This repo started as an offshoot of a work by @FayasNoushad
+but turned out to be something far differnt
 
 ## Deploy
 
 ```sh
-git clone https://github.com/FayasNoushad/Channel-Auto-Post-Bot.git
-cd Channel-Auto-Post-Bot
+git clone https://github.com/elcharitas/tg-autoposter-bot.git
+cd tg-autoposter-bot
 pip3 install -r requirements.txt
 # <Create Variables appropriately>
 python3 main.py
@@ -47,12 +43,5 @@ python3 main.py
 - `FILTER_POLL` (bool and optional) For poll filter
 - `FILTER_GAME` (bool and optional) For game filter
 - `REPLY_MARKUP` (bool and optional) For copy reply markup
-
----
-
-## Credits
-
-- [Fayas Noushad](https://github.com/FayasNoushad)
-- [Pyrogram](https://github.com/pyrogram/pyrogram)
 
 ---
